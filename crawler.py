@@ -2,8 +2,12 @@ import os
 import sys
 import csv
 import time
+import wget
+import shutil
 import urllib
+import zipfile
 import datetime
+import platform
 import requests # pip install requests
 from fake_useragent import UserAgent # pip install fake-useragent
 from bs4 import BeautifulSoup # pip install beautifulsoup4
@@ -12,6 +16,7 @@ from lxml.html import fromstring # pip install lxml
 from selenium import webdriver # pip install selenium
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from pyvirtualdisplay import Display
 
 class Crawl():
     def __init__(self):
@@ -105,29 +110,48 @@ class Google(Crawl):
         self.main_url = {'main' : 'https://google.com',}
         self.soup = None
     
-    def get_images_url(self, page_url, step=3):
-        options = webdriver.FirefoxOptions()
-        options.add_argument('headless')
-        options.add_argument('disable-gpu')
-        driver = webdriver.Firefox(options=options)
+    def get_images_url(self, page_url, how_many=1):
+        driver_success = False
+        try:
+            options = webdriver.ChromeOptions()
+            #options.add_argument('headless')
+            #options.add_argument('disable-gpu')
+            driver = webdriver.Chrome(options=options)
+            driver_success = True
+        except:
+            wget_url = 'https://chromedriver.storage.googleapis.com/78.0.3904.11/chromedriver_linux64.zip'
+            file_name = wget_url.split('/')[-1]
+            file_name_no_ext = os.path.splitext(file_name)[0]
+            wget.download(wget_url)
+            driver_zip = zipfile.ZipFile(os.getcwd()+'/'+file_name)
+            driver_zip.extractall(os.getcwd()+'/'+file_name_no_ext)
+            driver_zip.close()
+            
+            shutil.move(os.getcwd()+'/'+file_name_no_ext+'/chromedriver',
+                        'usr/bin/chromedriver')
+            shutil.rmtree(os.getcwd()+'/'+file_name_no_ext)
+        finally:
+            if not(driver_success):
+                driver = webdriver.Chrome(options=options)
+        
         driver.get(page_url)
         driver.implicitly_wait(2)
         html = driver.find_element_by_tag_name('body')
-        for i in range(step):
+        for i in range(how_many):
             print("image crawling...")
-            for j in range(30):
+            for j in range(2):
                 html.send_keys(Keys.PAGE_DOWN)
                 time.sleep(0.5)
             try:
                 driver.execute_script('document.getElementById("smc").style.display="block";')
                 time.sleep(2)
                 driver.find_element_by_id('smb').click()
-            except:
-                print("something goes wrong...")
+            except Exception as e:
+                print(e)
                 source = driver.page_source
                 driver.quit()
                 return source
-            print('Progress >> {}/{}'.format(i, step))
+            print('Progress >> {}/{}'.format(i+1, how_many))
         time.sleep(2)
         source = driver.page_source
         driver.quit()
@@ -135,8 +159,10 @@ class Google(Crawl):
     
     def get_images_as_file(self, link):
         try:
+            pprint(self.main_url['main']+link.get('href'), self.headers)
             request = requests.get(self.main_url['main']+link.get('href'), headers=self.headers)
-        except:
+        except Exception as e:
+            print(e)
             print('cannot get link.')
         title = str(fromstring(request.content).findtext('.//title'))
         link = title.split(" ")[-1]
@@ -148,16 +174,24 @@ class Google(Crawl):
             print('failed')
 
 
-    def get_images(self, keyword):
+    def get_images(self, keyword, how_many):
+        if platform.platform().startswith('Windows'):
+                print('Unsupported operating system')
+                sys.exit(1)
         try:
             sys.setrecursionlimit(pow(10,6))
             search_page = self.main_url['main'] + '/search?q='+keyword+'&source=lnms&tbm=isch&sa=X&ved=0ahUKEwjEzJnD3fbcAhUMO3AKHfLyCkkQ_AUICigB'
-            content = self.get_images_url(search_page)
-            self.soup = BeautifulSoup(str(content), 'html.parser')
+            content = self.get_images_url(search_page, how_many=how_many)
+            self.soup = BeautifulSoup(content, 'html.parser')
             if not os.path.isdir(keyword):
                 os.makedirs(keyword)
             os.chdir(str(os.getcwd()) + '/' + str(keyword))
             links= self.soup.find_all('a', class_='rg_l')
+
+            # here
+            print(links[1]['href'].split('imgurl=')[1])
+
+            sys.exit(1)
             self.get_images_as_file(links)
         except Exception as e:
             print(e)
