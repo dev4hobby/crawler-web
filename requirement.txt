@@ -3,3 +3,5 @@ requests==2.22.0
 selenium==3.141.0
 beautifulsoup4==4.8.0
 fake-useragent==0.1.11
+wget==3.2
+pyvirtualdisplay==0.2.4

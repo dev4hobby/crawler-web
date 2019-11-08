@@ -17,12 +17,13 @@ from selenium import webdriver # pip install selenium
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from pyvirtualdisplay import Display
+from multiprocessing import Pool
 
 class Crawl():
     def __init__(self):
         self.headers = {'User-Agent': UserAgent().random,
                         'From': 'acidlab.help@gmail.com'}
-    
+
     def get_contents(self, url):
         request = requests.get(url, headers=self.headers)
         content = request.content
@@ -109,7 +110,11 @@ class Google(Crawl):
         super().__init__()
         self.main_url = {'main' : 'https://google.com',}
         self.soup = None
-    
+   
+    def get_microdust(self):
+        pass
+
+
     def get_images_url(self, page_url, how_many=1):
         driver_success = False
         try:
@@ -157,22 +162,26 @@ class Google(Crawl):
         driver.quit()
         return source
     
-    def get_images_as_file(self, link):
-        try:
-            pprint(self.main_url['main']+link.get('href'), self.headers)
-            request = requests.get(self.main_url['main']+link.get('href'), headers=self.headers)
-        except Exception as e:
-            print(e)
-            print('cannot get link.')
-        title = str(fromstring(request.content).findtext('.//title'))
-        link = title.split(" ")[-1]
-        print("At: " + os.getcwd() + ", Downloading from " + link)
-        try:
-            if link.split(".")[-1] == ('jpg' or 'png' or 'jpeg'):
-                urllib.urlretrieve(link, link.split("/")[-1])
-        except:
-            print('failed')
+    def get_images_as_file(self, links):
+        opener = urllib.request.build_opener()
+        opener.addheaders=[self.headers]
+        urllib.request.install_opener(opener)
 
+        for index, link in enumerate(links):
+            title = link.split("/")[-1].split('?')[0]
+            if len(title) < 1:
+                title = link.split("/")[-1].split('?')[1]
+            if len(title) < 1:
+                title = abs(hash(link))+'.jpg'
+            print("[{}] Downloading : {}".format(index, title))
+            try:
+                ext = link.split('.')[-1]
+                if ext == ('jpg' or 'png' or 'jpeg'):
+                    urllib.request.urlretrieve(link, title)
+            except Exception as e:
+                print('[Error] Failed to download : {}'.format(link))
+                print(e)
+        print("Download Done")
 
     def get_images(self, keyword, how_many):
         if platform.platform().startswith('Windows'):
@@ -188,11 +197,19 @@ class Google(Crawl):
             os.chdir(str(os.getcwd()) + '/' + str(keyword))
             links= self.soup.find_all('a', class_='rg_l')
 
-            # here
-            print(links[1]['href'].split('imgurl=')[1])
-
-            sys.exit(1)
-            self.get_images_as_file(links)
+            buf = list()
+            for link in links:        
+                link= [item for item in urllib.parse.parse_qsl(link['href']) if item[0] == '/imgres?imgurl']
+                if len(link) > 0:
+                    buf.append(link[0][1])
+            del(links)
+            workers = list()
+            for i in range(1, os.cpu_count()+1):
+                workers.append('p'+str(i))
+            pool = Pool(processes=len(workers))
+            pool.map(self.get_images_as_file(buf), workers)
+            pool.close()
+            pool.join()
         except Exception as e:
             print(e)
             print('failed to get_images')
