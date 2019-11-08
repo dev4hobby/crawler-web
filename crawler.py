@@ -144,7 +144,7 @@ class Google(Crawl):
         html = driver.find_element_by_tag_name('body')
         for i in range(how_many):
             print("image crawling...")
-            for j in range(2):
+            for _ in range(2):
                 html.send_keys(Keys.PAGE_DOWN)
                 time.sleep(0.5)
             try:
