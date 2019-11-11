@@ -22,7 +22,7 @@ from multiprocessing import Pool
 class Crawl():
     def __init__(self):
         self.headers = {'User-Agent': UserAgent().random,
-                        'From': 'acidlab.help@gmail.com'}
+                        'From': 'hello_world@domain.com'}
 
     def get_contents(self, url):
         request = requests.get(url, headers=self.headers)
@@ -38,7 +38,8 @@ class Crawl():
 class Naver(Crawl):
     def __init__(self):
         super().__init__()
-        self.main_url = {'cafe' : 'https://m.cafe.naver.com',
+        self.main_url = {'search' : 'https://search.naver.com/search.naver?ie=utf8&query=',
+                         'cafe' : 'https://m.cafe.naver.com',
                          'datalab' : 'https://m.datalab.naver.com',}
         self.soup = None
 
@@ -104,6 +105,21 @@ class Naver(Crawl):
         trends = trends[age].find_all('span', class_='title')
         trends = [keyword.text for keyword in trends]
         return trends[:rank]
+    
+    def get_weather(self, spot, raw_option=True):
+        spot += '+날씨'
+        try:
+            self.url = self.main_url['search']+spot
+            self.soup = self.get_contents(self.url)
+            result = [self.soup.find('span', class_='btn_select').find('em').text,
+                      self.soup.find('p', class_='info_temperature').find('span', class_='todaytemp').text,
+                      self.soup.find('p', class_='cast_txt').text]
+            if raw_option:
+                return result
+            else:
+                return '현재 ' + result[0] + '의 기온은 ' + result[1] + '도 입니다. \n[ ' + result[2] + ' ]'
+        except:
+            return '죄송합니다. 관련 정보가 없습니다.\n감사합니다.'
 
 class Google(Crawl):
     def __init__(self):
@@ -186,7 +202,15 @@ class Google(Crawl):
     def get_images(self, keyword, how_many):
         if platform.platform().startswith('Windows'):
                 print('Unsupported operating system')
-                sys.exit(1)
+                return
+        try:
+            how_many = int(how_many)
+            if how_many < 2:
+                how_many = 2
+        except:
+            print('[Alert] Usage : get_images(\'keyword\', 2)')
+            print('Try again')
+
         try:
             sys.setrecursionlimit(pow(10,6))
             search_page = self.main_url['main'] + '/search?q='+keyword+'&source=lnms&tbm=isch&sa=X&ved=0ahUKEwjEzJnD3fbcAhUMO3AKHfLyCkkQ_AUICigB'
