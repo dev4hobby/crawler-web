@@ -239,3 +239,17 @@ class Google(Crawl):
             print('failed to get_images')
         finally:
             sys.setrecursionlimit(pow(10,3))
+
+class PPU(Crawl):
+    def __init__(self):
+        super().__init__()
+        self.main_url = {'forum' : 'http://www.ppomppu.co.kr/zboard/zboard.php?id=',}
+        self.soup = None
+    
+    def get_forum_oversea_title(self, keyword):
+        self.soup = self.get_contents(self.main_url['forum']+'oversea')
+        check_first_title = self.soup.find('table', id='revolution_main_table').find('tbody').find_all('tr')[38].find_all('td')[3].find('a').text
+
+        #print('현재 필터링중인 키워드 >> '+ str(keyword))
+        return check_first_title 
+
