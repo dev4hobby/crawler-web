@@ -42,7 +42,7 @@ INSTALLED_APPS = [
 
 INSTALLED_APPS += [
     # 'corsheaders',
-    'finder',
+    'weather',
     'apis',
 ]
 
