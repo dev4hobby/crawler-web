@@ -112,11 +112,14 @@ class Naver(Crawl):
                       self.soup.find('p', class_='info_temperature').find('span', class_='todaytemp').text,
                       self.soup.find('p', class_='cast_txt').text]
             if raw_option:
-                return result
+                return {'data' : result,
+                        'status' : 200 }
             else:
-                return '현재 ' + result[0] + '의 기온은 ' + result[1] + '도 입니다. \n[ ' + result[2] + ' ]'
+                return {'data' : '현재 ' + result[0] + '의 기온은 ' + result[1] + '도 입니다. \n[ ' + result[2] + ' ]',
+                        'status' : 200 }
         except:
-            return '죄송합니다. 관련 정보가 없습니다.\n감사합니다.'
+            return {'data' : None,
+                    'status' : 400 }
 
 class Google(Crawl):
     def __init__(self):

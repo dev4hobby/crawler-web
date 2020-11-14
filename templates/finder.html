@@ -1,0 +1,45 @@
+{% include "header.html" %}
+{% block head %}
+{% endblock %}
+
+{% block body %}
+<div class='container'>
+  <h1>지금 날씨</h1><br/>
+  <div class="form-group">
+    <label for="location-input">지역</label>
+    <input type="text" class="form-control" id="location-input">
+    <small id="location-input-help" class="form-text text-muted">날씨를 알고싶은 지역을 입력하세요.</small>
+  </div>
+  <button class="btn btn-primary" onclick="getWeatherInfoFromServer()">검색</button>
+  <hr>
+  <div style='text-align:center'>
+    <h2 id='weather_location'/><br/>
+    <h1 id='weather_temp'/><br/>
+    <h3 id='weather_diff'/><br/>
+  </div>
+</div>
+<script>
+    async function getWeatherInfoFromServer() {
+        const locationInfo = document.getElementById('location-input').value
+        const bodyData = {
+            'location': locationInfo,
+        }
+        let formData = new FormData()
+        for (let key in bodyData) {
+            formData.append(key, bodyData[key]);
+        }
+        await fetch('/apis/v1/weather/search/', {
+            method: 'POST',
+            body: formData,
+        }).then(result => {
+          result.json().then(res => {
+            const info = res.data['weather_info']
+            document.getElementById('weather_location').innerHTML = info[0]
+            document.getElementById('weather_temp').innerHTML = info[1]+'°'
+            document.getElementById('weather_diff').innerHTML = info[2]
+          })
+        })
+    }
+
+</script>
+{% endblock %}
